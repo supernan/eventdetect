@@ -1,0 +1,5 @@
+<eventdetect>
+    <maxdepth>4</maxdepth>
+    <nemodel>../conf/ictlap.conf</nemodel>
+    <neseq>1,0,2,3</neseq>
+</eventdetect>
