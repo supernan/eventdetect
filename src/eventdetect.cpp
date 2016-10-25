@@ -1,4 +1,6 @@
 #include <sstream>
+#include <algorithm>
+#include <fstream>
 #include "eventdetect.h"
 #include "basictools.h"
 #include "entitysim.h"
@@ -391,6 +393,46 @@ void CEventTree::__TraverseEventNode(eventNode *pRoot, vector<event> &rEvents)
 }
 
 
+void CEventTree::__TreeSerialization(eventNode *pRoot, string &rSerialRes)
+{
+    if (pRoot == NULL)
+        return;
+    if (pRoot->m_bIsLeaf)
+    {
+        rSerialRes = "()";
+        return;
+    }
+
+    vector<eventNode*> vChildren = pRoot->m_vChildren;
+    vector<string> vChildRes(vChildren.size(), "");
+    for (int i = 0; i < vChildren.size(); i++)
+        __TreeSerialization(vChildren[i], vChildRes[i]);
+    sort(vChildRes.begin(), vChildRes.end());
+    for (int i = 0; i < vChildRes.size(); i++)
+        rSerialRes += vChildRes[i];
+    string sEntityInfo = "";
+    for (int i = 0; i < m_vSplitSeqs.size(); i++)
+    {
+        vector<string> entities = pRoot->m_mID2Entites[m_vSplitSeqs[i]];
+        if (entities.empty())
+            continue;
+        for (int j = 0; j < entities.size(); j++)
+        {
+            if (j == entities.size()-1)
+                sEntityInfo += entities[j];
+            else
+            {
+                sEntityInfo += entities[j];
+                sEntityInfo += ",";
+            }
+        }
+        sEntityInfo += ";";
+    }
+    rSerialRes = "([" + sEntityInfo + "]" + rSerialRes + ")";
+    return;
+}
+
+
 bool CEventTree::DetectEvents(vector<pstWeibo> &rCorpus, vector<event> &rEvents)
 {
     if (rCorpus.empty())
@@ -417,5 +459,16 @@ bool CEventTree::DetectEvents(vector<pstWeibo> &rCorpus, vector<event> &rEvents)
     __TraverseEventNode(m_pRootNode, rEvents);
 
     LOG(INFO) << "DetectEvents Succeed Events Number is " << rEvents.size() << endl;
+    return true;
+}
+
+
+bool CEventTree::SaveTreeModel()
+{
+    ofstream output(m_sSavePath.c_str());
+    string sModelStr;
+    __TreeSerialization(m_pRootNode, sModelStr);
+    output << sModelStr;
+    output.close();
     return true;
 }

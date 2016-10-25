@@ -6,6 +6,7 @@
 #include <list>
 #include "ne.h"
 #include "DataType.h"
+#include "thpool.h"
 #include "glog/logging.h"
 
 using namespace std;
@@ -15,6 +16,8 @@ using namespace WeiboTopic_ICT;
 
 namespace name_entity
 {
+
+    class CNEModel;
 
     /*
      * \struct > neModelRes
@@ -30,8 +33,57 @@ namespace name_entity
         vector<string> m_vCountries;
         vector<string> m_vStocks;
         vector<string> m_vTimes;
-
     };
+
+    /*
+     * \fn > ExtractEntityThreadFunc
+     * \brief > extract entity thread function
+     * \param arg > thread func arg
+     * \ret void
+     * \date > 2016/10
+     * \author > zhounan(zhounan@software.ict.ac.cn)
+     */
+    void* ExtractEntityThreadFunc(void *arg);
+
+
+    /*
+     * \fn > Lock
+     * \brief > lock the mutex when multi-thread function is running
+     * \param [in] m_iNEModel > the object need to lock
+     * \ret void
+     * \date  > 2016/10
+     * \author > zhounan(zhounan@software.ict.ac.cn)
+     */
+    void Lock(CNEModel *m_iNEModel);
+
+
+    /*
+     * \fn > UnLock
+     * \brief > unlock the mutex when multi-thread function is running
+     * \param [in] m_iNEModel > the object need to unlock
+     * \ret void
+     * \date  > 2016/10
+     * \author > zhounan(zhounan@software.ict.ac.cn)
+     */
+    void UnLock(CNEModel *m_iNEModel);
+
+
+    /*
+     * \struct > neModelThreadParam
+     * \brief > all params used by thread function
+     * \date  > 2016/10
+     * \author > zhounan(zhounan@software.ict.ac.cn)
+     */
+    struct neModelThreadParam
+    {
+        vector<pstWeibo> *m_pCorpus;
+        vector<neModelRes> *m_pRes;
+        CNEModel *m_pNEModel;
+        NEapi m_API;
+        int m_nStart;
+        int m_nEnd;
+    };
+
 
     /*
      * \class > CNEModel
@@ -54,13 +106,14 @@ namespace name_entity
             /*
              * \fn > ExtractNameEntity
              * \brief > extract all of name entities from text
+             * \pram[in] pAPI > nemodel api
              * \param[in] sText > text
              * \param[out] rRes > result
              * \ret bool > whether function succeed
              * \date > 2016/10
              * \author > zhounan(zhounan@software.ict.ac.cn)
              */
-            bool ExtractNameEntity(pstWeibo pDoc, neModelRes &rRes);
+            bool ExtractNameEntity(NEapi pAPI, pstWeibo pDoc, neModelRes &rRes);
 
 
             /*
@@ -88,9 +141,15 @@ namespace name_entity
              */
             bool __ParseNEResult(const string &rText, NE::NEres res, neModelRes &rModelRes);
 
+        public:
+
+            // mutex
+            pthread_mutex_t m_iModelMutex;
+
         private:
             // NE api
-            NEapi m_hNEModel;
+            vector<NEapi> m_vNEHandlers;
+            //NEapi m_hNEModel;
     };
 }
 

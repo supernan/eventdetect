@@ -97,6 +97,16 @@ namespace event_detect
             bool DetectEvents(vector<pstWeibo> &rCorpus, vector<event> &rEvents);
 
 
+            /*
+             * \fn > SaveModel
+             * \brief > save tree model
+             * \ret bool > whether function succeed
+             * \date > 2016/10
+             * \author > zhounan(zhounan@software.ict.ac.cn)
+             */
+            bool SaveTreeModel();
+
+
         private:
 
             /*
@@ -189,10 +199,25 @@ namespace event_detect
              */
             void __TraverseEventNode(eventNode *pRoot, vector<event> &rEvents);
 
+
+            /*
+             * \fn > __TreeSerialization
+             * \brief > serialize the tree to string
+             * \param[in] pRoot > root of tree
+             * \param[out] rSerialRes > serialize result
+             * \ret void
+             * \date > 2016/10
+             * \author > zhounan(zhounan@software.ict.ac.cn)
+             */
+            void __TreeSerialization(eventNode *pRoot, string &rSerialRes);
+
         private:
 
             // max depth of tree
             int m_nMaxTreeDepth;
+
+            // save path
+            string m_sSavePath;
 
             // root of event tree
             eventNode *m_pRootNode;
