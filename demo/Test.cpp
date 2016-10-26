@@ -55,8 +55,13 @@ int main(int argc, char **argv)
     for (int i = 0; i < text.size(); i++)
         corpus.push_back(&text[i]);
 
-    CEventTree model(confPath, corpus);
+    CEventTree model(confPath);
     vector<event> events;
+    if (!model.DetectEvents(corpus, events))
+    {
+        cout<<"detect events failed" << endl;
+        return 1;
+    }
     if (!model.DetectEvents(corpus, events))
     {
         cout<<"detect events failed" << endl;

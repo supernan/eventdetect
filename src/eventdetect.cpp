@@ -123,7 +123,7 @@ void CEventTree::__DestroyEventTree(eventNode *pRoot)
 }
 
 
-CEventTree::CEventTree(const string &rConfPath, const vector<pstWeibo> &vDocs)
+CEventTree::CEventTree(const string &rConfPath)
 {
     if (!__LoadConfigFile(rConfPath))
     {
@@ -138,11 +138,6 @@ CEventTree::CEventTree(const string &rConfPath, const vector<pstWeibo> &vDocs)
     m_pRootNode->m_bIsLeaf = false;
     m_pRootNode->m_nEntityIdx = 0;
     m_pRootNode->m_nCurDepth = 1;
-
-    m_vDocs = vDocs;
-    for (int i = 0; i < m_vDocs.size(); i++)
-        m_pRootNode->m_vDocIDs.push_back(i);
-
     m_pNEModel = new CNEModel(m_sNEConfPath);
     if (m_pNEModel == NULL)
     {
@@ -618,6 +613,10 @@ bool CEventTree::DetectEvents(vector<pstWeibo> &rCorpus, vector<event> &rEvents)
         LOG(ERROR) << "DetectEvents Failed root node is NULL" << endl;
         return false;
     }
+
+    m_vDocs = rCorpus;
+    for (int i = 0; i < m_vDocs.size(); i++)
+        m_pRootNode->m_vDocIDs.push_back(i);
 
     rEvents.clear();
     if (!__DocsEntityAnalysis())

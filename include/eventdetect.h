@@ -84,7 +84,7 @@ namespace event_detect
              * \date > 2016/10
              * \author > zhounan(zhounan@software.ict.ac.cn)
              */
-            CEventTree(const string &rConfPath, const vector<pstWeibo> &vDocs);
+            CEventTree(const string &rConfPath);
 
             ~CEventTree();
 
