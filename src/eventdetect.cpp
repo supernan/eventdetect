@@ -451,23 +451,24 @@ void CEventTree::__TreeSerialization(eventNode *pRoot, string &rSerialRes)
 string CEventTree::__TreeNodeEntityToString(eventNode *pRoot)
 {
     string ret = "";
-    for (int i = 0; i < MAX_NE_NUM; i++)
+    for (int i = 0; i < m_vSplitSeqs.size(); i++)
     {
-        if (pRoot->m_mID2Entites[i].empty())
+        int entity = m_vSplitSeqs[i];
+        if (pRoot->m_mID2Entites[entity].empty())
         {
             ret += "NULL;";
             continue;
         }
-        vector<string> entities = pRoot->m_mID2Entites[i];
+        vector<string> entities = pRoot->m_mID2Entites[entity];
         string entityStr = "";
         for (int j = 0; j < entities.size(); j++)
         {
+            if (entities[j].length() == 0)
+                continue;
             if (j == entities.size()-1)
                 entityStr += entities[j];
             else
             {
-                if (entities[j].length() == 0)
-                    continue;
                 entityStr += entities[j];
                 entityStr += "||";
             }
@@ -486,11 +487,11 @@ map<int, vector<string> > CEventTree::__StringToEntityMap(const string &sEntity)
     string typeSep = ";";
     string entitySep = "||";
     Split(sEntity, typeSep, vEntityTypes);
-    for (int i = 0; i < MAX_NE_NUM; i++)
+    for (int i = 0; i < m_vSplitSeqs.size(); i++)
     {
         vector<string> entities;
         Split(vEntityTypes[i], entitySep, entities);
-        ret[i] = entities;
+        ret[m_vSplitSeqs[i]] = entities;
     }
     return ret;
 }
@@ -616,9 +617,28 @@ bool CEventTree::SaveTreeStructure(string path)
     TiXmlDocument *treeDocument = new TiXmlDocument();
     TiXmlDeclaration *declaration = new TiXmlDeclaration("1.0", "UTF-8", "");
     treeDocument->LinkEndChild(declaration);
+    string sEntityArr = "";
+    stringstream sstr;
+    for (int i = 0; i < m_vSplitSeqs.size(); i++)
+    {
+        string sIdx;
+        sstr.clear();
+        sstr << m_vSplitSeqs[i];
+        sstr >> sIdx;
+        if (i == m_vSplitSeqs.size() - 1)
+            sEntityArr += sIdx;
+        else
+        {
+            sEntityArr += sIdx;
+            sEntityArr += ",";
+        }
+    }
+    TiXmlElement *treeElement = new TiXmlElement("tree");
+    treeElement->SetAttribute("tree_entities", sEntityArr.c_str());
     TiXmlElement *RootElement = new TiXmlElement("treenode");
     __TreeToXMLElement(m_pRootNode, RootElement);
-    treeDocument->LinkEndChild(RootElement);
+    treeElement->LinkEndChild(RootElement);
+    treeDocument->LinkEndChild(treeElement);
     treeDocument->SaveFile(path.c_str());
     return true;
 }
@@ -634,7 +654,23 @@ bool CEventTree::LoadTreeStructure()
         return false;
     }
 
-    TiXmlElement* RootElement = treeDocument->RootElement();
+    TiXmlElement* treeElement = treeDocument->RootElement();
+    TiXmlAttribute *treeAttr = treeElement->FirstAttribute();
+    string sEntityArr = treeAttr->Value();
+    vector<string> vEntityIds;
+    string sep = ",";
+    stringstream sstr;
+    Split(sEntityArr, sep, vEntityIds);
+    m_vSplitSeqs.clear();
+    for (int i = 0; i < vEntityIds.size(); i++)
+    {
+        sstr.clear();
+        int nEntityIdx;
+        sstr << vEntityIds[i];
+        sstr >> nEntityIdx;
+        m_vSplitSeqs.push_back(nEntityIdx);
+    }
+    TiXmlElement *RootElement = treeElement->FirstChildElement();
     if (m_pRootNode != NULL)
         delete m_pRootNode;
     m_pRootNode = new eventNode();

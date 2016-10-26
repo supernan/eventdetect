@@ -13,11 +13,11 @@ using namespace std;
 using namespace name_entity;
 using namespace WeiboTopic_ICT;
 
-#define MAX_NE_NUM 4
-#define COUNTRY 0
-#define LOC 1
-#define PEOPLE 2
-#define ORG 3
+#define MAX_NE_NUM 104
+#define COUNTRY 100
+#define LOC 101
+#define PEOPLE 102
+#define ORG 103
 #define NONE 4
 
 #define THRESHOLD 0.5
