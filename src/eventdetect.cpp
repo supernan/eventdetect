@@ -367,6 +367,7 @@ void CEventTree::__TraverseEventNode(eventNode *pRoot, vector<event> &rEvents)
         }
         e.m_vEventDocs = vEventDocs;
         e.m_EventEntitiesMap = pRoot->m_mID2Entites;
+        e.m_sEventID = __TreeNodeEntityToString(pRoot);
         map<string, vector<string> >::iterator it;
 
         bool bEmpty = true;
@@ -592,6 +593,18 @@ bool CEventTree::__IsEntityValid(const string &sEntity)
 }
 
 
+void CEventTree::__ReleaseTreeNodeDocIDs(eventNode *pRoot)
+{
+    if (pRoot == NULL)
+        return;
+    vector<eventNode*> vChildren = pRoot->m_vChildren;
+    for (int i = 0; i < vChildren.size(); i++)
+        __ReleaseTreeNodeDocIDs(vChildren[i]);
+    vector<int>().swap(pRoot->m_vDocIDs);
+    pRoot->m_vDocIDs.clear();
+}
+
+
 bool CEventTree::DetectEvents(vector<pstWeibo> &rCorpus, vector<event> &rEvents)
 {
     if (rCorpus.empty())
@@ -616,6 +629,7 @@ bool CEventTree::DetectEvents(vector<pstWeibo> &rCorpus, vector<event> &rEvents)
     int nEntityIdx = 0;
     __BuildEventTree(m_pRootNode, nEntityIdx);
     __TraverseEventNode(m_pRootNode, rEvents);
+    __ReleaseTreeNodeDocIDs(m_pRootNode);
 
     LOG(INFO) << "DetectEvents Succeed Events Number is " << rEvents.size() << endl;
     return true;

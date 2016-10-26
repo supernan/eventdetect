@@ -33,6 +33,9 @@ namespace event_detect
      */
     struct event
     {
+        //event id
+        string m_sEventID;
+
         // docs
         vector<pstWeibo> m_vEventDocs;
 
@@ -277,6 +280,17 @@ namespace event_detect
              * \author > zhounan(zhounan@software.ict.ac.cn)
              */
             bool __IsEntityValid(const string &sEntity);
+
+
+            /*
+             * \fn > __ReleaseTreeNode
+             * \brief > release tree node vDocIds
+             * \param[in] pRoot > current tree node
+             * \ret void
+             * \date > 2016/10
+             * \author > zhounan(zhounan@software.ict.ac.cn)
+             */
+            void __ReleaseTreeNodeDocIDs(eventNode *pRoot);
 
 
         private:
