@@ -98,13 +98,23 @@ namespace event_detect
 
 
             /*
-             * \fn > SaveModel
+             * \fn > SaveTreeStructure
              * \brief > save tree model
              * \ret bool > whether function succeed
              * \date > 2016/10
              * \author > zhounan(zhounan@software.ict.ac.cn)
              */
-            bool SaveTreeModel();
+            bool SaveTreeStructure(string path);
+
+
+            /*
+             * \fn > LoadTreeStructure
+             * \brief > load tree model
+             * \ret bool > whether function succeed
+             * \date > 2016/10
+             * \author > zhounan(zhounan@software.ict.ac.cn)
+             */
+            bool LoadTreeStructure();
 
 
         private:
@@ -210,6 +220,53 @@ namespace event_detect
              * \author > zhounan(zhounan@software.ict.ac.cn)
              */
             void __TreeSerialization(eventNode *pRoot, string &rSerialRes);
+
+
+            /*
+             * \fn > __TreeToXMLElement
+             * \brief > parse tree to xml file
+             * \param[in] pRoot > root of tree
+             * \param[out] pElement > xml node
+             * \ret void
+             * \date > 2016/10
+             * \author > zhounan(zhounan@software.ict.ac.cn)
+             */
+            void __TreeToXMLElement(eventNode *pRoot, TiXmlElement *pElement);
+
+
+            /*
+             * \fn > __XMLElementToTree
+             * \brief > parse xml file to tree
+             * \param[in] pRoot > root of tree
+             * \param[out] pElement > xml node
+             * \ret void
+             * \date > 2016/10
+             * \author > zhounan(zhounan@software.ict.ac.cn)
+             */
+            void __XMLElementToTree(eventNode *pRoot, TiXmlElement *pElement);
+
+
+            /*
+             * \fn > __TreeNodeEntityToString
+             * \brief > make node   entities to string format
+             * \param[in] pRoot > root
+             * \ret string > result
+             * \date > 2016/10
+             * \author > zhounan(zhounan@software.ict.ac.cn)
+             */
+            string __TreeNodeEntityToString(eventNode *pRoot);
+
+
+            /*
+             * \fn > __StringToEntityMap
+             * \brief > make string format to entities map
+             * \param[in] sEntity > string to change
+             * \ret string > result
+             * \date > 2016/10
+             * \author > zhounan(zhounan@software.ict.ac.cn)
+             */
+            map<int, vector<string> > __StringToEntityMap(const string &sEntity);
+
 
         private:
 

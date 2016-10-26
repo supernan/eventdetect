@@ -82,6 +82,9 @@ int main(int argc, char **argv)
         }
         cout<<"========"<<endl;
     }
+    string newpath = "./newtree.xml";
+    //model.LoadTreeStructure();
+    model.SaveTreeStructure(newpath);
     return 0;
 }
 

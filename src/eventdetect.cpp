@@ -1,6 +1,9 @@
+#include <unistd.h>
+#include <fcntl.h>
 #include <sstream>
 #include <algorithm>
 #include <fstream>
+#include <sstream>
 #include "eventdetect.h"
 #include "basictools.h"
 #include "entitysim.h"
@@ -145,6 +148,7 @@ CEventTree::CEventTree(const string &rConfPath, const vector<pstWeibo> &vDocs)
     }
 
     LOG(INFO) << "CEventTree Init" << endl;
+    m_sSavePath = "./tree.xml";
 }
 
 
@@ -399,7 +403,7 @@ void CEventTree::__TreeSerialization(eventNode *pRoot, string &rSerialRes)
         return;
     if (pRoot->m_bIsLeaf)
     {
-        rSerialRes = "()";
+        rSerialRes = "<node></node>";
         return;
     }
 
@@ -415,7 +419,10 @@ void CEventTree::__TreeSerialization(eventNode *pRoot, string &rSerialRes)
     {
         vector<string> entities = pRoot->m_mID2Entites[m_vSplitSeqs[i]];
         if (entities.empty())
+        {
+            sEntityInfo += "NULL;";
             continue;
+        }
         for (int j = 0; j < entities.size(); j++)
         {
             if (j == entities.size()-1)
@@ -428,8 +435,149 @@ void CEventTree::__TreeSerialization(eventNode *pRoot, string &rSerialRes)
         }
         sEntityInfo += ";";
     }
-    rSerialRes = "([" + sEntityInfo + "]" + rSerialRes + ")";
+
+    stringstream sstr;
+    string sEntityIdx;
+    sstr << pRoot->m_nEntityIdx;
+    sstr >> sEntityIdx;
+
+    sEntityInfo = sEntityInfo + sEntityIdx + ";";
+
+    rSerialRes = "<node><entity>" + sEntityInfo + "</entity>" + rSerialRes + "</node>";
     return;
+}
+
+
+string CEventTree::__TreeNodeEntityToString(eventNode *pRoot)
+{
+    string ret = "";
+    for (int i = 0; i < MAX_NE_NUM; i++)
+    {
+        if (pRoot->m_mID2Entites[i].empty())
+        {
+            ret += "NULL;";
+            continue;
+        }
+        vector<string> entities = pRoot->m_mID2Entites[i];
+        string entityStr = "";
+        for (int j = 0; j < entities.size(); j++)
+        {
+            if (j == entities.size()-1)
+                entityStr += entities[j];
+            else
+            {
+                if (entities[j].length() == 0)
+                    continue;
+                entityStr += entities[j];
+                entityStr += "||";
+            }
+        }
+        ret += entityStr;
+        ret += ";";
+    }
+    return ret;
+}
+
+
+map<int, vector<string> > CEventTree::__StringToEntityMap(const string &sEntity)
+{
+    map<int, vector<string> > ret;
+    vector<string> vEntityTypes;
+    string typeSep = ";";
+    string entitySep = "||";
+    Split(sEntity, typeSep, vEntityTypes);
+    for (int i = 0; i < MAX_NE_NUM; i++)
+    {
+        vector<string> entities;
+        Split(vEntityTypes[i], entitySep, entities);
+        ret[i] = entities;
+    }
+    return ret;
+}
+
+
+void CEventTree::__TreeToXMLElement(eventNode *pRoot, TiXmlElement *pElement)
+{
+    if (pElement == NULL)
+    {
+        LOG(ERROR) << "__TreeToXMLElement Failed pElement is NULL" << endl;
+        return;
+    }
+    if (pRoot == NULL)
+    {
+        LOG(ERROR) << "__TreeToXMLElement Failed pRoot is NULL" << endl;
+        return;
+    }
+
+    string entityStr = __TreeNodeEntityToString(pRoot);
+    string entityIdStr;
+    stringstream sstr;
+    sstr << pRoot->m_nEntityIdx;
+    sstr >> entityIdStr;
+
+    pElement->SetAttribute("entities", entityStr.c_str());
+    pElement->SetAttribute("splitentity", entityIdStr.c_str());
+    if (pRoot->m_bIsLeaf)
+    {
+        pElement->SetAttribute("isleaf", "1");
+        return;
+    }
+
+    pElement->SetAttribute("isleaf", "0");
+    vector<eventNode*> vChildren = pRoot->m_vChildren;
+    for (int i = 0; i < vChildren.size(); i++)
+    {
+        eventNode *pChild = vChildren[i];
+        TiXmlElement *pChildElement = new TiXmlElement("treenode");
+        __TreeToXMLElement(pChild, pChildElement);
+        pElement->LinkEndChild(pChildElement);
+    }
+}
+
+
+void CEventTree::__XMLElementToTree(eventNode *pRoot, TiXmlElement *pElement)
+{
+    if (pRoot == NULL)
+    {
+        LOG(ERROR) << "__XMLElementToTree Failed pRoot is NULL" << endl;
+        return;
+    }
+    if (pElement == NULL)
+    {
+        LOG(ERROR) << "__XMLElementToTree Failed pElement is NULL" << endl;
+        return;
+    }
+
+    TiXmlAttribute *entityAttr  = pElement->FirstAttribute();
+    TiXmlAttribute *splitAttr = entityAttr->Next();
+    TiXmlAttribute *leafAttr = splitAttr->Next();
+
+    string sEntity = entityAttr->Value();
+    map<int, vector<string> > entityMap = __StringToEntityMap(sEntity);
+    string sLeafFlg = leafAttr->Value();
+    if (sLeafFlg == "1")
+        pRoot->m_bIsLeaf = true;
+    else
+        pRoot->m_bIsLeaf = false;
+    stringstream sstr;
+    sstr << splitAttr->Value();
+    sstr >> pRoot->m_nEntityIdx;
+    pRoot->m_mID2Entites = entityMap;
+
+    vector<TiXmlElement*> vChildElements;
+    vector<eventNode*> vChildren;
+    TiXmlElement* Element = pElement->FirstChildElement();
+    while (Element)
+    {
+        eventNode *pChild = new eventNode();
+        vChildren.push_back(pChild);
+        vChildElements.push_back(Element);
+        Element = Element->NextSiblingElement();
+    }
+
+    for (int i = 0; i < vChildren.size(); i++)
+        __XMLElementToTree(vChildren[i], vChildElements[i]);
+    pRoot->m_vChildren = vChildren;
 }
 
 
@@ -463,12 +611,34 @@ bool CEventTree::DetectEvents(vector<pstWeibo> &rCorpus, vector<event> &rEvents)
 }
 
 
-bool CEventTree::SaveTreeModel()
+bool CEventTree::SaveTreeStructure(string path)
 {
-    ofstream output(m_sSavePath.c_str());
-    string sModelStr;
-    __TreeSerialization(m_pRootNode, sModelStr);
-    output << sModelStr;
-    output.close();
+    TiXmlDocument *treeDocument = new TiXmlDocument();
+    TiXmlDeclaration *declaration = new TiXmlDeclaration("1.0", "UTF-8", "");
+    treeDocument->LinkEndChild(declaration);
+    TiXmlElement *RootElement = new TiXmlElement("treenode");
+    __TreeToXMLElement(m_pRootNode, RootElement);
+    treeDocument->LinkEndChild(RootElement);
+    treeDocument->SaveFile(path.c_str());
     return true;
 }
+
+
+bool CEventTree::LoadTreeStructure()
+{
+    TiXmlDocument *treeDocument = new TiXmlDocument(m_sSavePath.c_str());
+    treeDocument->LoadFile();
+    if (treeDocument == NULL)
+    {
+        LOG(ERROR) << "LoadTreeStructure Failed file path is wrong " << m_sSavePath << endl;
+        return false;
+    }
+
+    TiXmlElement* RootElement = treeDocument->RootElement();
+    if (m_pRootNode != NULL)
+        delete m_pRootNode;
+    m_pRootNode = new eventNode();
+    __XMLElementToTree(m_pRootNode, RootElement);
+    return true;
+}
+
