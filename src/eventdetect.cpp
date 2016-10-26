@@ -150,7 +150,7 @@ CEventTree::CEventTree(const string &rConfPath, const vector<pstWeibo> &vDocs)
     }
 
     LOG(INFO) << "CEventTree Init" << endl;
-    m_sSavePath = "./tree.xml";
+    //m_sSavePath = "./tree.xml";
 }
 
 
