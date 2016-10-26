@@ -68,6 +68,14 @@ bool CEventTree::__LoadConfigFile(const string &rConfPath)
         return false;
     }
 
+    TiXmlElement *pSaveNode = pSeqNode->NextSiblingElement();
+    if (pSaveNode == NULL)
+    {
+        LOG(FATAL) << "pSaveNode is not set" << endl;
+        return false;
+    }
+    m_sSavePath = pSaveNode->FirstChild()->Value();
+
     LOG(INFO) << "__LoadConfigFile Succeed" << endl;
     return true;
 }
@@ -82,8 +90,6 @@ bool CEventTree::__ParseEntitySeq(const string &rNESeq)
     }
 
     string sDelimit = ",";
-    stringstream sstr;
-    sstr.clear();
     vector<string> sNEs;
     Split(rNESeq, sDelimit, sNEs);
     for (int i = 0; i < sNEs.size(); i++)
@@ -91,16 +97,12 @@ bool CEventTree::__ParseEntitySeq(const string &rNESeq)
         string sNE = sNEs[i];
         if (sNE.length() == 0)
             continue;
-        sstr.clear();
-        int nNE;
-        sstr << sNE;
-        sstr >> nNE;
-        if (nNE < 0 || nNE > MAX_NE_NUM)
+        if (!__IsEntityValid(sNE))
         {
-            LOG(FATAL) << "NESeq is illegal out of boundry " <<nNE<< endl;
+            LOG(FATAL) << "NESeq is illegal out of boundry " <<sNE<< endl;
             return false;
         }
-        m_vSplitSeqs.push_back(nNE);
+        m_vSplitSeqs.push_back(sNE);
     }
 
     LOG(INFO) << "__ParseEntitySeq Succeed" << endl;
@@ -190,70 +192,63 @@ bool CEventTree::__GetEntitiesByID(vector<int> &vDocIDs, const int &nEntityIdx, 
         return false;
     }
 
-    int nSplitEntity = m_vSplitSeqs[nEntityIdx];
-    if (nSplitEntity < 0 || nSplitEntity >= MAX_NE_NUM)
+    string sSplitEntity = m_vSplitSeqs[nEntityIdx];
+    if (!__IsEntityValid(sSplitEntity))
     {
-        LOG(ERROR) << "__GetEntitiesByID Failed nSplitEntity out of boundry" << nSplitEntity << endl;
+        LOG(ERROR) << "__GetEntitiesByID Failed sSplitEntity out of boundry" << sSplitEntity << endl;
         return false;
     }
     mEntityMap.clear();
-    switch (nEntityIdx)
+    if (sSplitEntity == COUNTRY)
     {
-        case COUNTRY:
+        for (int i = 0; i < vDocIDs.size(); i++)
         {
-            for (int i = 0; i < vDocIDs.size(); i++)
+            int nID = vDocIDs[i];
+            if (nID >= m_vNERes.size())
             {
-                int nID = vDocIDs[i];
-                if (nID >= m_vNERes.size())
-                {
-                    LOG(ERROR) << "__GetEntitiesByID Error nID out of range" << endl;
-                    continue;
-                }
-                mEntityMap[nID] = m_vNERes[nID].m_vCountries;
+                LOG(ERROR) << "__GetEntitiesByID Error nID out of range" << endl;
+                continue;
             }
-            break;
+            mEntityMap[nID] = m_vNERes[nID].m_vCountries;
         }
-        case LOC:
+    }
+    else if (sSplitEntity == LOC)
+    {
+        for (int i = 0; i < vDocIDs.size(); i++)
         {
-            for (int i = 0; i < vDocIDs.size(); i++)
+            int nID = vDocIDs[i];
+            if (nID >= m_vNERes.size())
             {
-                int nID = vDocIDs[i];
-                if (nID >= m_vNERes.size())
-                {
-                    LOG(ERROR) << "__GetEntitiesByID Error nID out of range" << endl;
-                    continue;
-                }
-                mEntityMap[nID] = m_vNERes[nID].m_vLocs;
+                LOG(ERROR) << "__GetEntitiesByID Error nID out of range" << endl;
+                continue;
             }
-            break;
+            mEntityMap[nID] = m_vNERes[nID].m_vLocs;
         }
-        case PEOPLE:
+    }
+    else if (sSplitEntity == PEOPLE)
+    {
+        for (int i = 0; i < vDocIDs.size(); i++)
         {
-            for (int i = 0; i < vDocIDs.size(); i++)
+            int nID = vDocIDs[i];
+            if (nID >= m_vNERes.size())
             {
-                int nID = vDocIDs[i];
-                if (nID >= m_vNERes.size())
-                {
-                    LOG(ERROR) << "__GetEntitiesByID Error nID out of range" << endl;
-                    continue;
-                }
-                mEntityMap[nID] = m_vNERes[nID].m_vPeos;
+                LOG(ERROR) << "__GetEntitiesByID Error nID out of range" << endl;
+                continue;
             }
-            break;
+            mEntityMap[nID] = m_vNERes[nID].m_vPeos;
         }
-        case ORG:
+    }
+    else if (sSplitEntity == ORG)
+    {
+        for (int i = 0; i < vDocIDs.size(); i++)
         {
-            for (int i = 0; i < vDocIDs.size(); i++)
+            int nID = vDocIDs[i];
+            if (nID >= m_vNERes.size())
             {
-                int nID = vDocIDs[i];
-                if (nID >= m_vNERes.size())
-                {
-                    LOG(ERROR) << "__GetEntitiesByID Error nID out of range" << endl;
-                    continue;
-                }
-                mEntityMap[nID] = m_vNERes[nID].m_vOrgs;
+                LOG(ERROR) << "__GetEntitiesByID Error nID out of range" << endl;
+                continue;
             }
-            break;
+            mEntityMap[nID] = m_vNERes[nID].m_vOrgs;
         }
     }
     return true;
@@ -280,10 +275,10 @@ bool CEventTree::__SplitEventNode(eventNode *pRoot, int nEntityIdx)
         return false;
     }
 
-    int nSplitEntity = m_vSplitSeqs[nEntityIdx];
-    if (nSplitEntity < 0 || nSplitEntity >= MAX_NE_NUM)
+    string sSplitEntity = m_vSplitSeqs[nEntityIdx];
+    if (!__IsEntityValid(sSplitEntity))
     {
-        LOG(ERROR) << "__SplitEventNode Failed nSplitEntity Error " << nSplitEntity << endl;
+        LOG(ERROR) << "__SplitEventNode Failed sSplitEntity Error " << sSplitEntity << endl;
         return false;
     }
 
@@ -297,7 +292,7 @@ bool CEventTree::__SplitEventNode(eventNode *pRoot, int nEntityIdx)
         bool bMatch = false;
         for (int j = 0; j < pRoot->m_vChildren.size(); j++)
         {
-            vector<string> vNodeEntities = pRoot->m_vChildren[j]->m_mID2Entites[nSplitEntity];
+            vector<string> vNodeEntities = pRoot->m_vChildren[j]->m_mID2Entites[sSplitEntity];
             if (vNodeEntities.empty())
                 continue;
             double dScore = IEntitySimTool::JaccardSim(vNodeEntities, vDocEntities);
@@ -313,7 +308,7 @@ bool CEventTree::__SplitEventNode(eventNode *pRoot, int nEntityIdx)
             eventNode *pChild = new eventNode;
             pChild->m_mID2Entites = pRoot->m_mID2Entites;
 
-            pChild->m_mID2Entites[nSplitEntity] = vDocEntities;
+            pChild->m_mID2Entites[sSplitEntity] = vDocEntities;
             pChild->m_nEntityIdx = nEntityIdx + 1;
             pChild->m_nCurDepth = pRoot->m_nCurDepth + 1;
             pChild->m_vDocIDs.push_back(nDocID);
@@ -372,7 +367,7 @@ void CEventTree::__TraverseEventNode(eventNode *pRoot, vector<event> &rEvents)
         }
         e.m_vEventDocs = vEventDocs;
         e.m_EventEntitiesMap = pRoot->m_mID2Entites;
-        map<int, vector<string> >::iterator it;
+        map<string, vector<string> >::iterator it;
 
         bool bEmpty = true;
         for (it = pRoot->m_mID2Entites.begin(); it != pRoot->m_mID2Entites.end(); ++it)
@@ -453,7 +448,7 @@ string CEventTree::__TreeNodeEntityToString(eventNode *pRoot)
     string ret = "";
     for (int i = 0; i < m_vSplitSeqs.size(); i++)
     {
-        int entity = m_vSplitSeqs[i];
+        string entity = m_vSplitSeqs[i];
         if (pRoot->m_mID2Entites[entity].empty())
         {
             ret += "NULL;";
@@ -480,9 +475,9 @@ string CEventTree::__TreeNodeEntityToString(eventNode *pRoot)
 }
 
 
-map<int, vector<string> > CEventTree::__StringToEntityMap(const string &sEntity)
+map<string, vector<string> > CEventTree::__StringToEntityMap(const string &sEntity)
 {
-    map<int, vector<string> > ret;
+    map<string, vector<string> > ret;
     vector<string> vEntityTypes;
     string typeSep = ";";
     string entitySep = "||";
@@ -554,7 +549,7 @@ void CEventTree::__XMLElementToTree(eventNode *pRoot, TiXmlElement *pElement)
     TiXmlAttribute *leafAttr = splitAttr->Next();
 
     string sEntity = entityAttr->Value();
-    map<int, vector<string> > entityMap = __StringToEntityMap(sEntity);
+    map<string, vector<string> > entityMap = __StringToEntityMap(sEntity);
     string sLeafFlg = leafAttr->Value();
     if (sLeafFlg == "1")
         pRoot->m_bIsLeaf = true;
@@ -579,6 +574,21 @@ void CEventTree::__XMLElementToTree(eventNode *pRoot, TiXmlElement *pElement)
     for (int i = 0; i < vChildren.size(); i++)
         __XMLElementToTree(vChildren[i], vChildElements[i]);
     pRoot->m_vChildren = vChildren;
+}
+
+
+bool CEventTree::__IsEntityValid(const string &sEntity)
+{
+    if (sEntity == COUNTRY)
+        return true;
+    else if (sEntity == PEOPLE)
+        return true;
+    else if (sEntity == LOC)
+        return true;
+    else if (sEntity == ORG)
+        return true;
+    else
+        return false;
 }
 
 
@@ -612,7 +622,7 @@ bool CEventTree::DetectEvents(vector<pstWeibo> &rCorpus, vector<event> &rEvents)
 }
 
 
-bool CEventTree::SaveTreeStructure(string path)
+bool CEventTree::SaveTreeStructure()
 {
     TiXmlDocument *treeDocument = new TiXmlDocument();
     TiXmlDeclaration *declaration = new TiXmlDeclaration("1.0", "UTF-8", "");
@@ -621,10 +631,7 @@ bool CEventTree::SaveTreeStructure(string path)
     stringstream sstr;
     for (int i = 0; i < m_vSplitSeqs.size(); i++)
     {
-        string sIdx;
-        sstr.clear();
-        sstr << m_vSplitSeqs[i];
-        sstr >> sIdx;
+        string sIdx =  m_vSplitSeqs[i];
         if (i == m_vSplitSeqs.size() - 1)
             sEntityArr += sIdx;
         else
@@ -639,7 +646,7 @@ bool CEventTree::SaveTreeStructure(string path)
     __TreeToXMLElement(m_pRootNode, RootElement);
     treeElement->LinkEndChild(RootElement);
     treeDocument->LinkEndChild(treeElement);
-    treeDocument->SaveFile(path.c_str());
+    treeDocument->SaveFile(m_sSavePath.c_str());
     return true;
 }
 
@@ -664,11 +671,7 @@ bool CEventTree::LoadTreeStructure()
     m_vSplitSeqs.clear();
     for (int i = 0; i < vEntityIds.size(); i++)
     {
-        sstr.clear();
-        int nEntityIdx;
-        sstr << vEntityIds[i];
-        sstr >> nEntityIdx;
-        m_vSplitSeqs.push_back(nEntityIdx);
+        m_vSplitSeqs.push_back(vEntityIds[i]);
     }
     TiXmlElement *RootElement = treeElement->FirstChildElement();
     if (m_pRootNode != NULL)

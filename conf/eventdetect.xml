@@ -1,5 +1,6 @@
 <eventdetect>
     <maxdepth>4</maxdepth>
     <nemodel>../conf/ictlap.conf</nemodel>
-    <neseq>1,0,2,3</neseq>
+    <neseq>loc,country,people,org</neseq>
+    <tree_save_path>../data/eventtree.xml</tree_save_path>
 </eventdetect>

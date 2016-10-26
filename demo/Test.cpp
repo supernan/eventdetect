@@ -66,8 +66,8 @@ int main(int argc, char **argv)
     for (int i = 0; i < events.size(); i++)
     {
         cout<<i<<" "<<events[i].m_vEventDocs.size()<<endl;
-        map<int, vector<string> > entites = events[i].m_EventEntitiesMap;
-        map<int, vector<string> >::iterator it;
+        map<string, vector<string> > entites = events[i].m_EventEntitiesMap;
+        map<string, vector<string> >::iterator it;
         for (it = entites.begin(); it != entites.end(); ++it)
         {
             cout<<it->first<<endl;
@@ -84,7 +84,7 @@ int main(int argc, char **argv)
     }
     string newpath = "./newtree.xml";
     //model.LoadTreeStructure();
-    model.SaveTreeStructure(newpath);
+    model.SaveTreeStructure();
     return 0;
 }
 

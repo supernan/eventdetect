@@ -14,10 +14,10 @@ using namespace name_entity;
 using namespace WeiboTopic_ICT;
 
 #define MAX_NE_NUM 104
-#define COUNTRY 100
-#define LOC 101
-#define PEOPLE 102
-#define ORG 103
+#define COUNTRY "country"
+#define LOC "loc"
+#define PEOPLE "people"
+#define ORG "org"
 #define NONE 4
 
 #define THRESHOLD 0.5
@@ -37,7 +37,7 @@ namespace event_detect
         vector<pstWeibo> m_vEventDocs;
 
         // event entites
-        map<int, vector<string> > m_EventEntitiesMap;
+        map<string, vector<string> > m_EventEntitiesMap;
     };
 
     /*
@@ -52,7 +52,7 @@ namespace event_detect
         bool m_bIsLeaf;
 
         // entities of this node
-        map<int, vector<string> > m_mID2Entites;
+        map<string, vector<string> > m_mID2Entites;
 
         // children node
         vector<eventNode*> m_vChildren;
@@ -104,7 +104,7 @@ namespace event_detect
              * \date > 2016/10
              * \author > zhounan(zhounan@software.ict.ac.cn)
              */
-            bool SaveTreeStructure(string path);
+            bool SaveTreeStructure();
 
 
             /*
@@ -265,7 +265,18 @@ namespace event_detect
              * \date > 2016/10
              * \author > zhounan(zhounan@software.ict.ac.cn)
              */
-            map<int, vector<string> > __StringToEntityMap(const string &sEntity);
+            map<string, vector<string> > __StringToEntityMap(const string &sEntity);
+
+
+            /*
+             * \fn > __IsEntityValid
+             * \brief > is entity str valid
+             * \param[in] sEntity > string of entity
+             * \ret bool > is entity valid
+             * \date > 2016/10
+             * \author > zhounan(zhounan@software.ict.ac.cn)
+             */
+            bool __IsEntityValid(const string &sEntity);
 
 
         private:
@@ -286,7 +297,7 @@ namespace event_detect
             CNEModel *m_pNEModel;
 
             // split sequence
-            vector<int> m_vSplitSeqs;
+            vector<string> m_vSplitSeqs;
 
             // docs of event tree
             vector<pstWeibo> m_vDocs;
