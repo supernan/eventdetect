@@ -67,7 +67,6 @@ bool CEventTree::__LoadConfigFile(const string &rConfPath)
         LOG(FATAL) << "__ParseEntitySeq Failed " << endl;
         return false;
     }
-
     TiXmlElement *pSaveNode = pSeqNode->NextSiblingElement();
     if (pSaveNode == NULL)
     {
@@ -75,7 +74,6 @@ bool CEventTree::__LoadConfigFile(const string &rConfPath)
         return false;
     }
     m_sSavePath = pSaveNode->FirstChild()->Value();
-
     LOG(INFO) << "__LoadConfigFile Succeed" << endl;
     return true;
 }
@@ -152,6 +150,7 @@ CEventTree::CEventTree(const string &rConfPath)
 CEventTree::~CEventTree()
 {
     __DestroyEventTree(m_pRootNode);
+    delete m_pNEModel;
 }
 
 
@@ -174,6 +173,7 @@ bool CEventTree::__DocsEntityAnalysis()
         LOG(ERROR) << "__DocsEntityAnalysis Error BatchEntityExtract Failed" << endl;
         return false;
     }
+    cout<<"analysis end"<<endl;
     LOG(INFO) << "__DocsEntityAnalysis Succeed" << endl;
     return true;
 }

@@ -57,19 +57,22 @@ int main(int argc, char **argv)
 
     CEventTree model(confPath);
     vector<event> events;
+    //model.LoadTreeStructure();
     if (!model.DetectEvents(corpus, events))
     {
         cout<<"detect events failed" << endl;
         return 1;
     }
-    if (!model.DetectEvents(corpus, events))
+    /*if (!model.DetectEvents(corpus, events))
     {
         cout<<"detect events failed" << endl;
         return 1;
-    }
+    }*/
 
     for (int i = 0; i < events.size(); i++)
     {
+        if (events[i].m_vEventDocs.size() < 10)
+            continue;
         cout<<i<<" "<<events[i].m_vEventDocs.size()<<endl;
         map<string, vector<string> > entites = events[i].m_EventEntitiesMap;
         map<string, vector<string> >::iterator it;
