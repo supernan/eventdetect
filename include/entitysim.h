@@ -4,6 +4,7 @@
 #include <set>
 #include <vector>
 #include <iostream>
+#include "lru.h"
 using namespace std;
 
 namespace entity_sim
@@ -27,7 +28,7 @@ namespace entity_sim
         * \author > zhounan(zhounan@software.ict.ac.cn)
         */
         public:
-            static double JaccardSim(vector<string> &vList1, vector<string> &vList);
+            static double JaccardSim(LRUCache &iNodeCache, vector<string> &vList);
     };
 }
 

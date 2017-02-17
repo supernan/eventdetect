@@ -6,7 +6,6 @@
 #include <sstream>
 #include "eventdetect.h"
 #include "basictools.h"
-#include "entitysim.h"
 
 using namespace event_detect;
 using namespace basic_tools;
@@ -250,6 +249,34 @@ bool CEventTree::__GetEntitiesByID(vector<int> &vDocIDs, const int &nEntityIdx, 
 }
 
 
+bool CEventTree::__UpdateTreeNodeEntity(vector<string> &vDocEntities, LRUCache &iNodeCache)
+{
+    if (vDocEntities.empty())
+    {
+        LOG(WARNING) << "__UpdateTreeNodeEntity Failed vDocEntities empty " << endl;
+        return false;
+    }
+    if (iNodeCache.getKeyMap().empty())
+    {
+        LOG(WARNING) << "__UpdateTreeNodeEntity Failed keyMap is NUL" << endl;
+        return false;
+    }
+
+    for (int i = 0; i < vDocEntities.size(); i++)
+    {
+        string entity = vDocEntities[i];
+        if (entity == "NULL")
+            continue;
+        int nCnt = iNodeCache.get(entity);
+        if (nCnt != -1)
+            iNodeCache.set(entity, nCnt+1);
+        else
+            iNodeCache.set(entity, 1);
+    }
+    return true;
+}
+
+
 bool CEventTree::__SplitEventNode(eventNode *pRoot, int nEntityIdx)
 {
     if (pRoot == NULL)
@@ -285,16 +312,22 @@ bool CEventTree::__SplitEventNode(eventNode *pRoot, int nEntityIdx)
             vDocEntities.push_back("NULL");
 
         bool bMatch = false;
+        //cout<<"children "<<pRoot->m_vChildren.size()<<endl;
         for (int j = 0; j < pRoot->m_vChildren.size(); j++)
         {
-            vector<string> vNodeEntities = pRoot->m_vChildren[j]->m_mID2Entites[sSplitEntity];
-            if (vNodeEntities.empty())
+            LRUCache iNodeCache = pRoot->m_vChildren[j]->m_mID2Entites[sSplitEntity];
+            //cout<<"key map "<<iNodeCache.getKeyMap().size()<<endl;
+            if (iNodeCache.getKeyMap().empty())
                 continue;
-            double dScore = IEntitySimTool::JaccardSim(vNodeEntities, vDocEntities);
+            double dScore = IEntitySimTool::JaccardSim(iNodeCache, vDocEntities);
             if (dScore >= THRESHOLD)
             {
                 bMatch = true;
                 pRoot->m_vChildren[j]->m_vDocIDs.push_back(nDocID);
+                if (!__UpdateTreeNodeEntity(vDocEntities, pRoot->m_vChildren[j]->m_mID2Entites[sSplitEntity]))
+                {
+                    LOG(WARNING) << "__UpdateTreeNodeEntity Failed " << endl;
+                }
                 break;
             }
         }
@@ -302,8 +335,14 @@ bool CEventTree::__SplitEventNode(eventNode *pRoot, int nEntityIdx)
         {
             eventNode *pChild = new eventNode;
             pChild->m_mID2Entites = pRoot->m_mID2Entites;
-
-            pChild->m_mID2Entites[sSplitEntity] = vDocEntities;
+            LRUCache nodeCache(MAX_NE_NUM_PERNODE);
+            //cout<<"doc ne "<<vDocEntities.size()<<endl;
+            for (int i = 0; i < vDocEntities.size(); i++)
+            {
+                nodeCache.set(vDocEntities[i], 1);
+            }
+            //cout<<"node cache map "<<nodeCache.getCacheSize()<<endl;
+            pChild->m_mID2Entites[sSplitEntity] = nodeCache;
             pChild->m_nEntityIdx = nEntityIdx + 1;
             pChild->m_nCurDepth = pRoot->m_nCurDepth + 1;
             pChild->m_vDocIDs.push_back(nDocID);
@@ -358,17 +397,19 @@ void CEventTree::__TraverseEventNode(eventNode *pRoot, vector<event> &rEvents)
                 LOG(ERROR) << "__TraverseEventNode Error nIdx out of range" << endl;
                 continue;
             }
+            //cout<<m_vDocs[nIdx]->source<<endl;
             vEventDocs.push_back(m_vDocs[nIdx]);
         }
         e.m_vEventDocs = vEventDocs;
-        e.m_EventEntitiesMap = pRoot->m_mID2Entites;
+        e.m_EventEntitiesCache = pRoot->m_mID2Entites;
         e.m_sEventID = __TreeNodeEntityToString(pRoot);
-        map<string, vector<string> >::iterator it;
+        map<string, LRUCache>::iterator it;
 
         bool bEmpty = true;
         for (it = pRoot->m_mID2Entites.begin(); it != pRoot->m_mID2Entites.end(); ++it)
         {
-            if (!it->second.empty() && it->second[0] != "NULL")
+            map<string, node*> curMap = it->second.getKeyMap();
+            if (!curMap.empty())
             {
                 bEmpty = false;
                 break;
@@ -408,21 +449,18 @@ void CEventTree::__TreeSerialization(eventNode *pRoot, string &rSerialRes)
     string sEntityInfo = "";
     for (int i = 0; i < m_vSplitSeqs.size(); i++)
     {
-        vector<string> entities = pRoot->m_mID2Entites[m_vSplitSeqs[i]];
-        if (entities.empty())
+        LRUCache curCache= pRoot->m_mID2Entites[m_vSplitSeqs[i]];
+        map<string, node*> curMap = curCache.getKeyMap();
+        map<string, node*>::iterator it;
+        if (curMap.empty())
         {
             sEntityInfo += "NULL;";
             continue;
         }
-        for (int j = 0; j < entities.size(); j++)
+        for (it = curMap.begin(); it != curMap.end(); ++it)
         {
-            if (j == entities.size()-1)
-                sEntityInfo += entities[j];
-            else
-            {
-                sEntityInfo += entities[j];
-                sEntityInfo += ",";
-            }
+            sEntityInfo += it->first;
+            sEntityInfo += "\t";
         }
         sEntityInfo += ";";
     }
@@ -445,24 +483,21 @@ string CEventTree::__TreeNodeEntityToString(eventNode *pRoot)
     for (int i = 0; i < m_vSplitSeqs.size(); i++)
     {
         string entity = m_vSplitSeqs[i];
-        if (pRoot->m_mID2Entites[entity].empty())
+        if (pRoot->m_mID2Entites[entity].getKeyMap().empty())
         {
             ret += "NULL;";
             continue;
         }
-        vector<string> entities = pRoot->m_mID2Entites[entity];
+        map<string, node*> curMap = pRoot->m_mID2Entites[entity].getKeyMap();
         string entityStr = "";
-        for (int j = 0; j < entities.size(); j++)
+        map<string, node*>::iterator it;
+        for (it = curMap.begin(); it != curMap.end(); ++it)
         {
-            if (entities[j].length() == 0)
+            string entity = it->first;
+            if (entity.length() == 0)
                 continue;
-            if (j == entities.size()-1)
-                entityStr += entities[j];
-            else
-            {
-                entityStr += entities[j];
-                entityStr += "||";
-            }
+            entityStr += entity;
+            entityStr += "||";
         }
         ret += entityStr;
         ret += ";";
@@ -554,7 +589,18 @@ void CEventTree::__XMLElementToTree(eventNode *pRoot, TiXmlElement *pElement)
     stringstream sstr;
     sstr << splitAttr->Value();
     sstr >> pRoot->m_nEntityIdx;
-    pRoot->m_mID2Entites = entityMap;
+    map<string, vector<string> >::iterator it;
+    map<string, LRUCache> nodeNEmap;
+    for (it = entityMap.begin(); it != entityMap.end(); ++it)
+    {
+        LRUCache curCache(MAX_NE_NUM_PERNODE);
+        string key = it->first;
+        vector<string> entities = it->second;
+        for (int i = 0; i < entities.size(); i++)
+            curCache.set(entities[i], 1);
+        nodeNEmap[key] = curCache;
+    }
+    pRoot->m_mID2Entites = nodeNEmap;
 
     vector<TiXmlElement*> vChildElements;
     vector<eventNode*> vChildren;

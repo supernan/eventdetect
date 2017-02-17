@@ -3,12 +3,14 @@
 
 #include <vector>
 #include <map>
+#include <queue>
 #include <iostream>
 #include "tinyxml.h"
 #include "tinystr.h"
 #include "glog/logging.h"
 #include "nemodel.h"
 #include "DataType.h"
+#include "entitysim.h"
 using namespace std;
 using namespace name_entity;
 using namespace WeiboTopic_ICT;
@@ -21,9 +23,29 @@ using namespace WeiboTopic_ICT;
 #define NONE 4
 
 #define THRESHOLD 0.5
+#define MAX_NE_NUM_PERNODE 10
 
 namespace event_detect
 {
+    /*
+     * \struct > entityRecord
+     * \brief > entity and its count in tree node
+     * \date > 2016/10
+     * \author > zhounan(zhounan@software.ict.ac.cn)
+     */
+    /*struct entityRecord
+    {
+        // entity
+        string m_sEntity;
+
+        // count
+        int m_nCnt;
+
+        friend bool operator < (entityRecord e1, entityRecord e2)
+        {
+            return !(e1.m_nCnt < e2.m_nCnt);
+        }
+    };*/
 
     /*
      * \struct > event
@@ -40,7 +62,7 @@ namespace event_detect
         vector<pstWeibo> m_vEventDocs;
 
         // event entites
-        map<string, vector<string> > m_EventEntitiesMap;
+        map<string, LRUCache> m_EventEntitiesCache;
     };
 
     /*
@@ -55,7 +77,7 @@ namespace event_detect
         bool m_bIsLeaf;
 
         // entities of this node
-        map<string, vector<string> > m_mID2Entites;
+        map<string,  LRUCache> m_mID2Entites;
 
         // children node
         vector<eventNode*> m_vChildren;
@@ -176,6 +198,18 @@ namespace event_detect
              * \author > zhounan(zhounan@software.ict.ac.cn)
              */
             bool __GetEntitiesByID(vector<int> &vDocIDs, const int &nEntityIdx, map<int, vector<string> > &mEntityMap);
+
+
+            /*
+             * \fn > __UpdateTreeNodeEntity
+             * \brief > update node entity list when add new doc to the node
+             * \param[in] vDocEntities > entities from new doc
+             * \param[out] qNodeEntities > tree node to update
+             * \ret bool > whether function succeed
+             * \date > 2016/10
+             * \author > zhounan(zhounan@software.ict.ac.cn)
+             */
+            bool __UpdateTreeNodeEntity(vector<string> &vDocEntities, LRUCache &iNodeCache);
 
 
             /*

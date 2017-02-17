@@ -2,9 +2,50 @@
 #include "entitysim.h"
 using namespace entity_sim;
 
-double IEntitySimTool::JaccardSim(vector<string> &vList1, vector<string> &vList2)
+double IEntitySimTool::JaccardSim(LRUCache &iNodeCache, vector<string> &vList2)
 {
+    map<string, node*> mCache = iNodeCache.getKeyMap();
+
     double dScore = 0.0;
+    double totalScore = 0.0;
+    double curScore = 0.0;
+    int nCnt = 0;
+    map<string, int> mMatchEntities;
+    for (int i = 0; i < vList2.size(); i++)
+    {
+        string entity = vList2[i];
+        if (entity == "NULL")
+            continue;
+        if (mCache.find(entity) != mCache.end())
+        {
+            int nScore = mCache[entity]->value;
+            if (nScore > 0)
+                curScore += nScore;
+            else
+                curScore += 1;
+            mMatchEntities[entity] = 1;
+        }
+    }
+
+    map<string, node*>::iterator it;
+    for (it = mCache.begin(); it != mCache.end(); ++it)
+    {
+        string entity = it->first;
+        if (entity == "NULL")
+            continue;
+        int score = it->second->value;
+        if (score == 0 && mMatchEntities.find(entity) != mMatchEntities.end())
+            totalScore += 1;
+        else
+            totalScore += score;
+    }
+    //cout<<curScore<<" "<<totalScore<<endl;
+    if (totalScore == 0)
+        return 1;
+    else
+        return curScore / totalScore;
+
+    /*double dScore = 0.0;
     int nLen1 = vList1.size();
     int nLen2 = vList2.size();
     int maxLen;
@@ -29,5 +70,5 @@ double IEntitySimTool::JaccardSim(vector<string> &vList1, vector<string> &vList2
     if (nUnion == 0)
         return dScore;
     dScore = double(nIntersec) / double(nUnion);
-    return dScore;
+    return dScore;*/
 }
