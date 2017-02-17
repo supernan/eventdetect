@@ -319,6 +319,9 @@ bool CEventTree::__SplitEventNode(eventNode *pRoot, int nEntityIdx)
             //cout<<"key map "<<iNodeCache.getKeyMap().size()<<endl;
             if (iNodeCache.getKeyMap().empty())
                 continue;
+            //for (int i = 0; i < vDocEntities.size(); i++)
+            //    cout<<vDocEntities[i]<<" ";
+            //cout<<endl;
             double dScore = IEntitySimTool::JaccardSim(iNodeCache, vDocEntities);
             if (dScore >= THRESHOLD)
             {

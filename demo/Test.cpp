@@ -70,21 +70,27 @@ int main(int argc, char **argv)
     }*/
     for (int i = 0; i < events.size(); i++)
     {
-        cout<<i<<" "<<events[i].m_vEventDocs.size()<<endl;
         if (events[i].m_vEventDocs.size() < 10)
             continue;
         cout<<i<<" "<<events[i].m_vEventDocs.size()<<endl;
         map<string, LRUCache> entites = events[i].m_EventEntitiesCache;
         map<string, LRUCache>::iterator it;
+        bool bFlg = false;
         for (it = entites.begin(); it != entites.end(); ++it)
         {
             cout<<it->first<<endl;
             map<string, node*> curMap = it->second.getKeyMap();
             map<string, node*>::iterator itmap;
             for (itmap = curMap.begin(); itmap != curMap.end(); ++itmap)
+            {
+                if (itmap->first != "NULL")
+                    bFlg = true;
                 cout<<itmap->first<<" ";
+            }
             cout<<endl;
         }
+        if (!bFlg)
+            continue;
         vector<pstWeibo> docs = events[i].m_vEventDocs;
         for (int j = 0; j < docs.size(); j++)
         {

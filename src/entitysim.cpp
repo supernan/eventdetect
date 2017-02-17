@@ -14,15 +14,15 @@ double IEntitySimTool::JaccardSim(LRUCache &iNodeCache, vector<string> &vList2)
     for (int i = 0; i < vList2.size(); i++)
     {
         string entity = vList2[i];
+        if (mMatchEntities.find(entity) != mMatchEntities.end())
+            continue;
         if (entity == "NULL")
             continue;
+        nCnt += 1;
         if (mCache.find(entity) != mCache.end())
         {
             int nScore = mCache[entity]->value;
-            if (nScore > 0)
-                curScore += nScore;
-            else
-                curScore += 1;
+            curScore += nScore;
             mMatchEntities[entity] = 1;
         }
     }
@@ -34,16 +34,16 @@ double IEntitySimTool::JaccardSim(LRUCache &iNodeCache, vector<string> &vList2)
         if (entity == "NULL")
             continue;
         int score = it->second->value;
-        if (score == 0 && mMatchEntities.find(entity) != mMatchEntities.end())
-            totalScore += 1;
-        else
-            totalScore += score;
+        totalScore += score;
     }
-    //cout<<curScore<<" "<<totalScore<<endl;
-    if (totalScore == 0)
+
+
+    if (totalScore == 0 && nCnt == 0)
         return 1;
-    else
+    else if (totalScore > 0 && curScore > 0)
         return curScore / totalScore;
+    else
+        return 0;
 
     /*double dScore = 0.0;
     int nLen1 = vList1.size();
