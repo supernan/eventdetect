@@ -23,7 +23,7 @@ using namespace WeiboTopic_ICT;
 #define NONE 4
 
 #define THRESHOLD 0.5
-#define MAX_NE_NUM_PERNODE 10
+#define MAX_NE_NUM_PERNODE 5
 
 namespace event_detect
 {

@@ -271,7 +271,7 @@ bool CEventTree::__UpdateTreeNodeEntity(vector<string> &vDocEntities, LRUCache &
         if (nCnt != -1)
             iNodeCache.set(entity, nCnt+1);
         else
-            iNodeCache.set(entity, 1);
+            iNodeCache.set(entity, 0);
     }
     return true;
 }
@@ -310,7 +310,8 @@ bool CEventTree::__SplitEventNode(eventNode *pRoot, int nEntityIdx)
         vector<string> vDocEntities = mDocID2Entity[nDocID];
         if (vDocEntities.empty()) // if no entities set it to NULL important
             vDocEntities.push_back("NULL");
-
+        if (vDocEntities.size() > 4)
+            continue;
         bool bMatch = false;
         //cout<<"children "<<pRoot->m_vChildren.size()<<endl;
         for (int j = 0; j < pRoot->m_vChildren.size(); j++)

@@ -25,6 +25,8 @@ double IEntitySimTool::JaccardSim(LRUCache &iNodeCache, vector<string> &vList2)
             curScore += nScore;
             mMatchEntities[entity] = 1;
         }
+        else
+            totalScore += 1;
     }
 
     map<string, node*>::iterator it;
